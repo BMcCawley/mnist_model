@@ -65,3 +65,50 @@ for e in range(epochs):
         print(
             f"Training loss: {running_loss/len(trainloader)}"
         )  # Print the training loss
+
+# Download and load the testing data
+testset = datasets.MNIST(
+    "~/.pytorch/MNIST_data/", download=True, train=False, transform=transform
+)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=True)
+
+# Initialize the test loss and the accuracy
+test_loss = 0
+accuracy = 0
+
+# Switch model to evaluation mode. This means that dropout and batch norm are disabled.
+model.eval()
+
+# Turn off gradients for testing
+with torch.no_grad():
+    for images, labels in testloader:
+        # Flatten MNIST images into a 784 long vector
+        images = images.view(images.shape[0], -1)
+
+        # Move images and labels to the device
+        images, labels = images.to(device), labels.to(device)
+
+        # Forward pass
+        log_ps = model(images)
+
+        # Compute the loss
+        test_loss += criterion(log_ps, labels)
+
+        # Get the class probabilities
+        ps = torch.exp(log_ps)
+
+        # Get the top result
+        top_p, top_class = ps.topk(1, dim=1)
+
+        # Check how many of the classes were correct?
+        equals = top_class == labels.view(*top_class.shape)
+
+        # Calculate the accuracy
+        accuracy += torch.mean(equals.type(torch.FloatTensor))
+
+# Switch model back to train mode
+model.train()
+
+# Print the test loss and the accuracy
+print(f"Test loss: {test_loss/len(testloader)}")
+print(f"Test accuracy: {accuracy/len(testloader)}")
